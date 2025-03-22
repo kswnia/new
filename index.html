@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Interface</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="container">
+  <h3>Please use this structure for a prompt:
+    <b>whom</b> you want to generate,
+    <b>position</b> for this character,
+    <b>background</b> for character,
+    voiceover put this in '',
+    and <b>gender</b>
+  </h3>
+
+  <!-- Added messages container -->
+  <div id="messages" class="messages-container">
+    <!-- Messages will be displayed here -->
+  </div>
+
+  <div class="input-container">
+    <div class="input-area">
+      <textarea id="user-input" placeholder="Enter your voiceover here and whom to generate..."></textarea>
+      <div class="buttons">
+        <button class="icon-button" id="16_9">
+          16:9
+        </button>
+        <button id="9_16" class="icon-button">
+          9:16
+        </button>
+        <button id="sitting" class="icon-button">
+          sitting
+        </button>
+        <button class="icon-button" id="standing">
+          standing
+        </button>
+      </div>
+      <!-- Added id to the send button -->
+      <button id="send-button" class="up-button">
+        <i class="fas fa-arrow-up"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const messagesContainer = document.getElementById('messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+
+    // Auto-resize textarea as user types
+    userInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+
+    // Send message when Enter key is pressed (without Shift)
+    userInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Group 1: Sitting vs Standing
+    const sittingBtn = document.getElementById("sitting");
+    const standingBtn = document.getElementById("standing");
+
+    const ratio16_9Btn = document.getElementById("16_9");
+    const ratio9_16Btn = document.getElementById("9_16"); 
+
+    function handlePositionSelection(selectedBtn, otherBtn) {
+      selectedBtn.style.backgroundColor = "#D3D3D3";
+      selectedBtn.classList.add("selected");
+
+      otherBtn.style.backgroundColor = "";
+      otherBtn.classList.remove("selected");
+    }
+
+    function handleRatioSelection(selectedBtn, otherBtn) {
+      selectedBtn.style.backgroundColor = "#D3D3D3";
+      selectedBtn.classList.add("selected");
+
+      otherBtn.style.backgroundColor = "";
+      otherBtn.classList.remove("selected");
+    }
+
+    sittingBtn.addEventListener("click", function() {
+      handlePositionSelection(this, standingBtn);
+    });
+
+    standingBtn.addEventListener("click", function() {
+      handlePositionSelection(this, sittingBtn);
+    });
+
+    ratio16_9Btn.addEventListener("click", function() {
+      handleRatioSelection(this, ratio9_16Btn);
+    });
+
+    ratio9_16Btn.addEventListener("click", function() {
+      handleRatioSelection(this, ratio16_9Btn);
+    });
+
+    sendButton.addEventListener('click', sendMessage);
+
+    async function sendMessage() {
+      const message = userInput.value.trim();
+      if (message) {
+        // Add user message to chat
+        addUserMessage(message);
+
+        // Clear input and reset height
+        userInput.value = '';
+        userInput.style.height = 'auto';
+
+        try {
+          // Show loading indicator
+          const loadingDiv = document.createElement('div');
+          loadingDiv.className = 'message bot-message loading';
+          loadingDiv.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+          messagesContainer.appendChild(loadingDiv);
+          scrollToBottom();
+
+          // For demonstration, we'll use a local mock response
+          // In production, uncomment the fetch code below
+
+          /*
+          // Send message to Flask backend
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message })
+          });
+
+          if (messagesContainer.contains(loadingDiv)) {
+            messagesContainer.removeChild(loadingDiv);
+          }
+
+          if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          Check if the response contains formatted code content
+          if (data.type === 'code' && data.code) {
+            addFormattedResponse(data);
+          } else {
+            // Display regular response
+            addBotMessage(data.response || "Sorry, I couldn't process your request.");
+          }
+          */
+
+          // Simulate response for testing (remove in production)
+          setTimeout(() => {
+            if (messagesContainer.contains(loadingDiv)) {
+              messagesContainer.removeChild(loadingDiv);
+            }
+
+            // Example response
+            addBotMessage("I received your message: " + message);
+
+            scrollToBottom();
+          }, 1000);
+
+        } catch (error) {
+          // Remove loading indicator if it still exists
+          const loadingDiv = document.querySelector('.loading');
+          if (loadingDiv && messagesContainer.contains(loadingDiv)) {
+            messagesContainer.removeChild(loadingDiv);
+          }
+
+
+
+          console.error('Error:', error);
+          addBotMessage("Sorry, there was an error communicating with the server. Please try again later.");
+        }
+      }
+    }
+
+    function addUserMessage(text) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message user-message';
+
+      // Create text node for safe text display
+      const sanitizedText = document.createTextNode(text);
+      messageDiv.appendChild(sanitizedText);
+
+      messagesContainer.appendChild(messageDiv);
+      scrollToBottom();
+    }
+
+    function addBotMessage(text) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message bot-message';
+
+      // Create text node for safe text display
+      const sanitizedText = document.createTextNode(text);
+      messageDiv.appendChild(sanitizedText);
+
+      messagesContainer.appendChild(messageDiv);
+      scrollToBottom();
+    }
+
+    function addFormattedResponse(data) {
+      // Create message container
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message bot-message';
+
+      const messageContent = document.createElement('div');
+      messageContent.className = 'message-content';
+
+      // Add explanation text if present
+      if (data.explanation) {
+        const explanation = document.createElement('p');
+        explanation.innerHTML = data.explanation;
+        messageContent.appendChild(explanation);
+
+        // Add divider
+        const divider = document.createElement('div');
+        divider.className = 'divider';
+        messageContent.appendChild(divider);
+      }
+
+      // Add heading if present
+      if (data.heading) {
+        const heading = document.createElement('h2');
+        heading.textContent = data.heading;
+        messageContent.appendChild(heading);
+      }
+
+      // Add code block if present
+      if (data.code) {
+        const codeBlock = document.createElement('div');
+        codeBlock.className = 'code-block';
+
+        const codeHeader = document.createElement('div');
+        codeHeader.className = 'code-header';
+
+        const codeLanguage = document.createElement('div');
+        codeLanguage.className = 'code-language';
+        codeLanguage.textContent = data.language || 'code';
+
+        const codeActions = document.createElement('div');
+        codeActions.className = 'code-actions';
+
+        const copyButton = document.createElement('button');
+        copyButton.className = 'code-action';
+        copyButton.innerHTML = '<i class="far fa-copy"></i> Copy';
+        copyButton.addEventListener('click', function() {
+          navigator.clipboard.writeText(codeContent.textContent)
+                  .then(() => {
+                    copyButton.innerHTML = '<i class="fas fa-check"></i> Copied';
+                    setTimeout(() => {
+                      copyButton.innerHTML = '<i class="far fa-copy"></i> Copy';
+                    }, 2000);
+                  })
+                  .catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    copyButton.innerHTML = '<i class="fas fa-times"></i> Failed';
+                    setTimeout(() => {
+                      copyButton.innerHTML = '<i class="far fa-copy"></i> Copy';
+                    }, 2000);
+                  });
+        });
+
+        const editButton = document.createElement('button');
+        editButton.className = 'code-action';
+        editButton.innerHTML = '<i class="far fa-edit"></i> Edit';
+
+        codeActions.appendChild(copyButton);
+        codeActions.appendChild(editButton);
+
+        codeHeader.appendChild(codeLanguage);
+        codeHeader.appendChild(codeActions);
+
+        const codeContent = document.createElement('div');
+        codeContent.className = 'code-content';
+        codeContent.textContent = data.code;
+
+        codeBlock.appendChild(codeHeader);
+        codeBlock.appendChild(codeContent);
+
+        messageContent.appendChild(codeBlock);
+      }
+
+      // Add additional content if present
+      if (data.additionalContent) {
+        const additionalContent = document.createElement('div');
+        additionalContent.innerHTML = data.additionalContent;
+        messageContent.appendChild(additionalContent);
+      }
+
+      messageDiv.appendChild(messageContent);
+      messagesContainer.appendChild(messageDiv);
+
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Add initial welcome message
+    setTimeout(() => {
+      addBotMessage("Hello! I'm your AI assistant. How can I help you today?");
+    }, 500);
+  });
+</script>
+
+<style>
+  
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .messages-container {
+    height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+  }
+
+  .message {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    max-width: 80%;
+  }
+
+  .user-message {
+    background-color: #696969;
+    margin-left: auto;
+  }
+
+  .bot-message {
+    background-color: #454545;
+  }
+
+  .input-area {
+    display: flex;
+    border: 1px solid #4c4c4c;
+    border-radius: 5px;
+    padding: 10px;
+  }
+
+  #user-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    min-height: 40px;
+    max-height: 120px;
+    background-color:transparent;
+    font-color: #FFFFFF;
+  }
+
+  .buttons {
+    display: flex;
+    align-items: center;
+  }
+
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: 5px;
+  }
+
+  .up-button {
+    background-color: #1a73e8;
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loading-dots span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #ccc;
+    margin: 0 3px;
+    animation: dots 1.4s infinite ease-in-out;
+  }
+
+  .loading-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .loading-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes dots {
+    0%, 100% { transform: scale(0.5); opacity: 0.5; }
+    50% { transform: scale(1); opacity: 1; }
+  }
+</style>
+</body>
+</html>
